@@ -33,9 +33,9 @@ public class PlayerMovement : MonoBehaviour
         bool isMoving = moveDir != Vector3.zero;
         anim.SetBool("Moving", isMoving);
 
-        bool isRunning = speed == runSpeed;
+        bool isRunning = speed == runSpeed && isMoving;
         anim.SetBool("Sprinting", isRunning);
-
+        
         rb.drag = groundDrag;
     }
 
@@ -44,7 +44,7 @@ public class PlayerMovement : MonoBehaviour
         MovePlayer();
     }
 
-    void MovePlayer()
+    void MovePlayer() // moves the player
     {
         moveDir = LookAt.forward * verticalInput + LookAt.right * horizontalInput;
         rb.AddForce(moveDir.normalized * speed * 20f, ForceMode.Force);
@@ -58,11 +58,11 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKey(KeyCode.LeftShift))
             speed = runSpeed;
         else
-            speed = moveSpeed;
-        
+            speed = moveSpeed;        
+                
     }
 
-    void SpeedControl()
+    void SpeedControl() // limits the speed of the player
     {
         Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
 
