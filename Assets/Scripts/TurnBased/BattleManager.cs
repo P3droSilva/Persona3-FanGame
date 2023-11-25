@@ -11,6 +11,7 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private GameObject enemySpawnPoint2;
     [SerializeField] private GameObject enemySpawnPoint3;
     [SerializeField] private GameObject enemySpawnPoint4;
+    [SerializeField] private Transform  enemyParent;
     private int partySize = 4;
     private int enemiesSize;
 
@@ -30,8 +31,7 @@ public class BattleManager : MonoBehaviour
         // instantiate the enemies as children of the enemySpawnPoints
         for(int i = 0; i < enemiesSize; i++)
         {
-            GameObject enemy = Instantiate(enemyPrefab);
-            enemy.transform.SetParent(enemySpawnPoints[i].transform);
+            GameObject enemy = Instantiate(enemyPrefab, enemySpawnPoints[i].transform);
             enemy.transform.localPosition = Vector3.zero;
         }
         
