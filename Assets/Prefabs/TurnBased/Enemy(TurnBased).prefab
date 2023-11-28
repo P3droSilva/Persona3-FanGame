@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4159574428308149240}
+  - component: {fileID: -4471640366741743471}
   - component: {fileID: 8804868268456318947}
   - component: {fileID: 5479720299701186110}
   - component: {fileID: 1582340522954564870}
@@ -35,6 +36,37 @@ Transform:
   - {fileID: 6630240948360385236}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
+--- !u!114 &-4471640366741743471
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2045717697307502472}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3181ad7e9fc813140bca477f7eaab423, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  strength: 100
+  magic: 100
+  endurance: 100
+  agility: 100
+  luck: 100
+  HP: 0
+  SP: 0
+  initiative: 0
+  isPlayer: 0
+  rawDamage: -1
+  strength: 70
+  magic: 55
+  endurance: 40
+  agility: 60
+  luck: 40
+  HP: 0
+  SP: 0
+  initiative: 0
+  isPlayer: 0
 --- !u!54 &8804868268456318947
 Rigidbody:
   m_ObjectHideFlags: 0
