@@ -17,6 +17,13 @@ public class YukariBattle : PlayerBattle
         HP = 100 + (endurance * 10);
         SP = 100 + magic;
         initiative = agility + UnityEngine.Random.Range(1, (luck / 2));
+
+        SetHpBar();
+    }
+
+    protected override void SetHpBar()
+    {
+        base.SetHpBar();
     }
 
     public override void Fire()

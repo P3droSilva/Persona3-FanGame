@@ -2,18 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Cinemachine;
 
 public class BattleManager : MonoBehaviour
 {
     [Header("Camera Properties")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private Camera targetCamera;
+    [SerializeField] private CinemachineVirtualCamera vcam;
 
     [Header("Battle UI")]
     [SerializeField] private Canvas battleCanvas;
     [SerializeField] private Button attackButton;
-    [SerializeField] private GameObject targetArrowPrefab;
-    private GameObject targetArrow;
 
     [Header("Enemy Properties")]
     [SerializeField] private GameObject enemyPrefab;
@@ -33,6 +33,7 @@ public class BattleManager : MonoBehaviour
 
     // list that controls the turn order
     private List<PlayerBattle> characters = new List<PlayerBattle>();
+    private List<PlayerBattle> party = new List<PlayerBattle>();    
     private List<ShadowBattle> enemies = new List<ShadowBattle>();
 
     private PlayerBattle activeCharacter;
@@ -42,18 +43,28 @@ public class BattleManager : MonoBehaviour
 
     private void Start()
     {
-        battleCanvas.gameObject.SetActive(false);
-        targetCamera.gameObject.SetActive(false);
-        mainCamera.gameObject.SetActive(true);
+        //free mouse cursor
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
-        // add party members to the list
+        battleCanvas.gameObject.SetActive(false);
+        targetCamera.gameObject.SetActive(true);
+        mainCamera.gameObject.SetActive(false);
+
+        // add party members to the Characters list
         characters.Add(makoto);
-        characters.Add(mitsuru);
         characters.Add(junpei);
+        characters.Add(mitsuru);
         characters.Add(yukari);
 
+        // add party members to the Party list
+        party.Add(makoto);
+        party.Add(junpei);
+        party.Add(mitsuru);
+        party.Add(yukari);
+
         //get encounter enemies properties
-        enemiesCount = UnityEngine.Random.Range(2, 4); // This will change depending on the future encounter table
+        enemiesCount = UnityEngine.Random.Range(4, 5); // This will change depending on the future encounter table
 
         //Instantiate Enemies
         List<GameObject> enemySpawnPoints = new List<GameObject>
@@ -84,26 +95,25 @@ public class BattleManager : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.LeftArrow))
             {
+                enemies[targetIdx].ToggleActiveCanvas();
                 targetIdx++;
                 if (targetIdx >= enemies.Count)
                     targetIdx = 0;
 
-                Destroy(targetArrow);
-                targetArrow = Instantiate(targetArrowPrefab, enemies[targetIdx].gameObject.transform);
+                enemies[targetIdx].ToggleActiveCanvas();
             }
             else if (Input.GetKeyDown(KeyCode.RightArrow))
             {
+                enemies[targetIdx].ToggleActiveCanvas();
                 targetIdx--;
                 if (targetIdx < 0)
                     targetIdx = enemies.Count - 1;
 
-                Destroy(targetArrow);
-                targetArrow = Instantiate(targetArrowPrefab, enemies[targetIdx].gameObject.transform);
+                enemies[targetIdx].ToggleActiveCanvas();
             }
             else if (Input.GetKeyDown(KeyCode.Space))
             {
                 choosingTarget = false;
-                Destroy(targetArrow);
                 SwapCamera();
                 Debug.Log(activeCharacter.name + " attacked " + enemies[targetIdx].name);
             }
@@ -113,6 +123,7 @@ public class BattleManager : MonoBehaviour
     IEnumerator BattleLoop()
     {
         activeCharacterIndex = 0;
+        SwapCamera();
 
         while(true)
         {
@@ -123,6 +134,8 @@ public class BattleManager : MonoBehaviour
                 Debug.Log("Active Char Index: " + activeCharacterIndex);
                 Debug.Log(activeCharacter.name + " is a player");
 
+                ChangeCameraFocus();
+
                 attackButton.onClick.RemoveAllListeners();
                 attackButton.onClick.AddListener(activeCharacter.PhysicalAttack);
                 yield return StartCoroutine(PlayerAction());
@@ -131,9 +144,8 @@ public class BattleManager : MonoBehaviour
             {
                 Debug.Log("Active Char Index: " + activeCharacterIndex);
                 Debug.Log(activeCharacter.name + " is an enemy");
-
-                // enemy turn
-                yield return new WaitForSeconds(1f);
+                
+                yield return StartCoroutine(EnemyAction());
             }
             
             if(enemiesCount == 0)
@@ -162,6 +174,7 @@ public class BattleManager : MonoBehaviour
         int rawDamage = activeCharacter.getDamage();
 
         battleCanvas.gameObject.SetActive(false);
+        activeCharacter.ToggleActiveCanvas();
 
         ChooseTarget();
 
@@ -170,7 +183,13 @@ public class BattleManager : MonoBehaviour
             yield return null;
         }
 
+        yield return StartCoroutine(AttackAnimation(activeCharacter.gameObject, enemies[targetIdx].gameObject));
+
         int hp = enemies[targetIdx].TakeDamage(rawDamage);
+
+        yield return new WaitForSeconds(1f);
+        enemies[targetIdx].ToggleActiveCanvas();
+
         if(hp <= 0)
         {
             enemies[targetIdx].gameObject.SetActive(false);
@@ -183,15 +202,43 @@ public class BattleManager : MonoBehaviour
         }
 
         targetIdx = -1;
+        activeCharacter.ToggleActiveCanvas();
+    }
+
+    IEnumerator EnemyAction() 
+    {
+        yield return StartCoroutine(activeCharacter.StartAction());
+        int rawDamage = activeCharacter.getDamage();
+        Debug.Log("Raw Damage: " + rawDamage);
+
+        int target = UnityEngine.Random.Range(0, party.Count);
+
+        yield return StartCoroutine(AttackAnimation(activeCharacter.gameObject, party[target].gameObject));
+
+        int hp = party[target].TakeDamage(rawDamage);
+
+        if (hp <= 0)
+        {
+            party[target].gameObject.SetActive(false);
+
+            Debug.Log("Character List Size: " + characters.Count);
+            characters.Remove(party[targetIdx]);
+            party.RemoveAt(targetIdx);
+            partyCount--;
+            Debug.Log("Character List Size: " + characters.Count);
+        }
+
+        yield return new WaitForSeconds(1f);
         battleCanvas.gameObject.SetActive(false);
     }
+    
 
     private void ChooseTarget()
     {
         targetIdx = 0;
         choosingTarget = true;
         SwapCamera();
-        targetArrow = Instantiate(targetArrowPrefab, enemies[targetIdx].gameObject.transform);
+        enemies[targetIdx].ToggleActiveCanvas();
     }
 
     private void SwapCamera()
@@ -209,6 +256,46 @@ public class BattleManager : MonoBehaviour
 
         Debug.Log("Camera Swapped");
 
+    }
+
+    IEnumerator AttackAnimation(GameObject attacker, GameObject target)
+    {
+        var transposer = vcam.GetCinemachineComponent<CinemachineTransposer>();
+
+        vcam.Follow = attacker.transform;
+        vcam.LookAt = attacker.transform.parent.Find("LookAt").transform;
+        transposer.m_FollowOffset = new Vector3(0, 2, 4.5f);
+
+        activeCharacter.gameObject.GetComponent<Animator>().SetTrigger("Attack");
+        yield return new WaitForSeconds(1f);
+
+        vcam.Follow = target.transform;
+        vcam.LookAt = target.transform.parent.Find("LookAt").transform;
+        transposer.m_FollowOffset = new Vector3(0, 2, 4.5f);
+    }
+
+    private void ChangeCameraFocus()
+    {
+        GameObject partyMember = activeCharacter.gameObject;
+        vcam.Follow = partyMember.transform;
+        vcam.LookAt = partyMember.transform.parent.Find("LookAt").transform;
+        var transposer = vcam.GetCinemachineComponent<CinemachineTransposer>();
+
+        switch(partyMember.name)
+        {
+            case "Player(TurnBased)":
+                transposer.m_FollowOffset = new Vector3(2.5f, 3, -4);
+                break;
+            case "Junpei(TurnBased)":
+                transposer.m_FollowOffset = new Vector3(1f, 3, -4);
+                break;
+            case "Mitsuru(TurnBased)":
+                transposer.m_FollowOffset = new Vector3(-0.5f, 3, -4);
+                break;
+            case "Yukari(TurnBased)":
+                transposer.m_FollowOffset = new Vector3(-2f, 3, -4);
+                break;
+        }
     }
 
     private void DecideTurnOrder()

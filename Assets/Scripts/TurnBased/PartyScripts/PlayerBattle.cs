@@ -5,13 +5,16 @@ using UnityEngine.UI;
 
 public class PlayerBattle : MonoBehaviour
 {
+    [SerializeField] protected HealthBar HpBar;
+    [SerializeField] protected Canvas HpCanvas;
+
     public int strength;
     public int magic;
     public int endurance;
     public int agility;
     public int luck;
-    public int HP;
     public int SP;
+    public int HP;
     public int initiative;
     public bool isPlayer;
 
@@ -29,9 +32,16 @@ public class PlayerBattle : MonoBehaviour
         HP = 100 + (endurance * 10);
         SP = 100 + magic;
         initiative = agility + UnityEngine.Random.Range(1, (luck / 2));
+
+        SetHpBar();
     }
 
-    public IEnumerator StartAction()
+    protected virtual void SetHpBar()
+    {
+        HpBar.SetMaxHP(HP);
+    }
+
+    public virtual IEnumerator StartAction()
     {
         while (rawDamage == -1)
         {
@@ -53,7 +63,10 @@ public class PlayerBattle : MonoBehaviour
         {
             damage = 0;
         }
+
         HP -= damage;
+        HpBar.SetHP(HP);
+
         Debug.Log("Took " + damage + " damage!");
         return HP;
     }
@@ -66,5 +79,17 @@ public class PlayerBattle : MonoBehaviour
     virtual public void Fire()
     {
 
+    }
+
+    public void ToggleActiveCanvas()
+    {
+        if(HpCanvas.gameObject.activeSelf == true)
+        {
+            HpCanvas.gameObject.SetActive(false);
+        }
+        else
+        {
+            HpCanvas.gameObject.SetActive(true);
+        }
     }
 }
