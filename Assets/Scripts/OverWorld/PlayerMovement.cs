@@ -13,15 +13,17 @@ public class PlayerMovement : MonoBehaviour
 
     float horizontalInput;
     float verticalInput;
-    float speed;
+    float maxSpeed;
     Vector3 moveDir = Vector3.zero;
+
+    public Vector3 velocity = Vector3.zero;
 
     void Start()
     {
         anim = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
-        speed = moveSpeed;
+        maxSpeed = moveSpeed;
     }
 
     // Update is called once per frame
@@ -33,10 +35,11 @@ public class PlayerMovement : MonoBehaviour
         bool isMoving = moveDir != Vector3.zero;
         anim.SetBool("Moving", isMoving);
 
-        bool isRunning = speed == runSpeed && isMoving;
+        bool isRunning = maxSpeed == runSpeed && isMoving;
         anim.SetBool("Sprinting", isRunning);
         
         rb.drag = groundDrag;
+        velocity = rb.velocity;
     }
 
     private void FixedUpdate()
@@ -47,7 +50,7 @@ public class PlayerMovement : MonoBehaviour
     void MovePlayer() // moves the player
     {
         moveDir = LookAt.forward * verticalInput + LookAt.right * horizontalInput;
-        rb.AddForce(moveDir.normalized * speed * 20f, ForceMode.Force);
+        rb.AddForce(moveDir.normalized * maxSpeed * 20f, ForceMode.Force);
     }
 
     void GetInput()
@@ -56,9 +59,9 @@ public class PlayerMovement : MonoBehaviour
         verticalInput = Input.GetAxis("Vertical");
 
         if (Input.GetKey(KeyCode.LeftShift))
-            speed = runSpeed;
+            maxSpeed = runSpeed;
         else
-            speed = moveSpeed;        
+            maxSpeed = moveSpeed;        
                 
     }
 
@@ -66,9 +69,9 @@ public class PlayerMovement : MonoBehaviour
     {
         Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
 
-        if(flatVel.magnitude > speed)
+        if(flatVel.magnitude > maxSpeed)
         {
-            Vector3 limitedVel = flatVel.normalized * speed;
+            Vector3 limitedVel = flatVel.normalized * maxSpeed;
             rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
         }
     }
