@@ -64,7 +64,7 @@ public class BattleManager : MonoBehaviour
         party.Add(yukari);
 
         //get encounter enemies properties
-        enemiesCount = UnityEngine.Random.Range(4, 5); // This will change depending on the future encounter table
+        enemiesCount = UnityEngine.Random.Range(2, 5); // This will change depending on the future encounter table
 
         //Instantiate Enemies
         List<GameObject> enemySpawnPoints = new List<GameObject>
