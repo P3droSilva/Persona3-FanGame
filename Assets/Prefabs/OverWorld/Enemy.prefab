@@ -54,7 +54,10 @@ MonoBehaviour:
   maxSpeed: 30
   velocity: {x: 0, y: 0, z: 0}
   steeringForce: {x: 0, y: 0, z: 0}
+  wall: {x: 0, y: 0, z: 0}
+  other: {x: 0, y: 0, z: 0}
   target: {fileID: 0}
+  wanderTarget: {x: 0, y: 0, z: 0}
 --- !u!114 &5866020470183691062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -70,6 +73,9 @@ MonoBehaviour:
   wanderRadius: 5
   wanderDistance: 10
   wanderJitter: 1
+  testCube: {fileID: 0}
+  wanderCircleAngle: 0
+  angle: 0
 --- !u!54 &8804868268456318947
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -116,8 +122,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 4, y: 2, z: 4}
-  m_Center: {x: 0, y: 1, z: 0}
+  m_Size: {x: 2, y: 1, z: 2}
+  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!95 &1582340522954564870
 Animator:
   serializedVersion: 5

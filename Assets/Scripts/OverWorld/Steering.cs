@@ -10,19 +10,29 @@ public class Steering : MonoBehaviour
     [SerializeField] private float wanderRadius = 5f;
     [SerializeField] private float wanderDistance = 2f;
     [SerializeField] private float wanderJitter = 3f;
-    private float wanderCircleAngle = 0f;
-    private Vector3 wanderTarget = Vector3.zero;
 
-    
-    public Vector3 Seek(Actor actor, Vector3 targetPos)
+    public float[] Seek(Actor actor, Vector3 targetPos)
     {
-        Vector3 desiredVelocity = targetPos - actor.transform.position;
-        desiredVelocity.Normalize();
-        desiredVelocity *= actor.maxSpeed;
-        return (desiredVelocity - actor.velocity);
+        float[] interest = { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f };
+        Vector3 directionToTarget = targetPos - actor.transform.position;
+        directionToTarget.Normalize();
+
+        for(int i=0; i < Directions.eightDirections.Count; i++)
+        {
+            float result = Vector3.Dot(directionToTarget, Directions.eightDirections[i]);
+
+            if(result > 0)
+            {
+                if(result > interest[i])
+                {
+                    interest[i] = result;
+                }
+            }
+        }
+        return interest;
     }
 
-    public Vector3 Pursuit(Actor pursuer, PlayerMovement evader)
+    public float[] Pursuit(Actor pursuer, PlayerMovement evader)
     {
         //if the evader is ahead and facing the agent then we can just seek
         //for the evader's current position.
@@ -40,19 +50,63 @@ public class Steering : MonoBehaviour
         return Seek(pursuer, evader.transform.position + evader.velocity * lookAheadTime);
     }
 
-    public Vector3 Wander(Actor actor)
+    public float[] Wander(Actor actor)
     {
-        Vector3 circlePos = actor.transform.position + actor.transform.forward.normalized * wanderDistance;
+        // Calculate the displacement vector
+        Vector3 wanderTarget = actor.resultDirection + new Vector3(Random.Range(-1f, 1f) * wanderJitter, 0, Random.Range(-1f, 1f) * wanderJitter);
+        wanderTarget.Normalize();
+        wanderTarget *= wanderRadius;
 
-        float angleChange = Random.Range(-wanderJitter, wanderJitter);
-        float wanderAngle = Mathf.Deg2Rad * angleChange;
+        // Adjust the target position based on wander distance
+        Vector3 targetPos = actor.transform.position + actor.transform.forward * wanderDistance + wanderTarget;
 
-        // Adjust the wander angle each frame
-        wanderCircleAngle += wanderAngle;
+        // Seek the calculated target position
+        return Seek(actor, targetPos);
+    }
 
-        Vector3 target = circlePos + new Vector3(Mathf.Cos(wanderCircleAngle), 0f, Mathf.Sin(wanderCircleAngle)) * wanderRadius;
+    public float[] WallAvoidance (Actor actor, float avoidanceRadius, float actorColliderSize, LayerMask obstacleLayer)
+    {
+        float[] danger = { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f};
+        Collider[] colliders = Physics.OverlapSphere(actor.transform.position, avoidanceRadius, obstacleLayer);
 
-        return Seek(actor, target);
+        foreach (Collider collider in colliders)
+        {
+            // Get the closest point on the obstacle collider
+            Vector3 directionToObstable = collider.ClosestPoint(actor.transform.position) - actor.transform.position;
+            float distanceToObstacle = directionToObstable.magnitude;
+
+            float weight = distanceToObstacle <= actorColliderSize ? 1f : (avoidanceRadius - distanceToObstacle)/avoidanceRadius;
+
+            Vector3 directionToObstacleNormalized = directionToObstable.normalized;
+
+            for(int i = 0; i < Directions.eightDirections.Count; i++)
+            {
+                float result = Vector3.Dot(directionToObstacleNormalized, Directions.eightDirections[i]);
+
+                float dangerVal = result * weight;
+
+                if(dangerVal > danger[i])
+                {
+                    danger[i] = dangerVal;
+                }
+            }
+        }
+        return danger;
+    }
+
+    public static class Directions
+    {
+        public static List<Vector3> eightDirections = new List<Vector3>()
+        {
+            new Vector3(1, 0, 0),
+            new Vector3(1, 0, 1),
+            new Vector3(0, 0, 1),
+            new Vector3(-1, 0, 1),
+            new Vector3(-1, 0, 0),
+            new Vector3(-1, 0, -1),
+            new Vector3(0, 0, -1),
+            new Vector3(1, 0, -1)
+        };
     }
 
 
