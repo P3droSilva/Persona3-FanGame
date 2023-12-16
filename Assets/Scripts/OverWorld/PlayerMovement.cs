@@ -17,6 +17,17 @@ public class PlayerMovement : MonoBehaviour
     Vector3 moveDir = Vector3.zero;
 
     public Vector3 velocity = Vector3.zero;
+    private Vector3 startPos = Vector3.zero;
+
+    private bool firstUpdate = true;
+
+    private void Awake()
+    {
+        if (GameManager.Instance != null && GameManager.Instance.playerPosition != Vector3.zero)
+        {
+            startPos = GameManager.Instance.playerPosition;
+        }
+    }
 
     void Start()
     {
@@ -26,9 +37,19 @@ public class PlayerMovement : MonoBehaviour
         maxSpeed = moveSpeed;
     }
 
-    // Update is called once per frame
     void Update()
     {
+        if(firstUpdate)
+        {
+            firstUpdate = false;
+            // por algum motivo, se fizesse isso no Start, as vezes o player não carregava na posição certa
+            if (startPos != Vector3.zero)
+            {
+                transform.position = startPos;
+                Debug.Log("Player position loaded " + startPos);
+            }
+        }
+
         GetInput();
         SpeedControl();
 

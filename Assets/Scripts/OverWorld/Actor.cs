@@ -13,7 +13,7 @@ public class Actor : MonoBehaviour
     public float pursuitSpeed = 5f;
     public float maxSpeed;
     public float rotationSpeed = 10f;
-    public float attackRange = 2f;
+    public float attackRange = 4f;
 
     [Header("Steering Arguments")]
     public float avoidanceRadius = 7f;
@@ -27,6 +27,8 @@ public class Actor : MonoBehaviour
     public Vector3 resultDirection;
     public bool targetInView = false;
     public bool wander = true;
+    public bool pursuing = false;
+    public bool searching = false;
     public bool attacking = false;
 
     [Header("Gizmos")]
@@ -50,47 +52,120 @@ public class Actor : MonoBehaviour
         maxSpeed = wanderSpeed;
     }
 
+    void FixedUpdate()
+    {
+        LayerMask obstacleLayer = LayerMask.GetMask("Obstacle");
+
+        FindTargetInView();
+
+        float[] danger = steering.WallAvoidance(this, avoidanceRadius, maxAvoidanceDistance, obstacleLayer);
+        float[] interest = { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f };
+
+
+        if (attacking)
+        {
+            rb.velocity = Vector3.zero;
+            return;
+        }
+        else if (pursuing)
+        {
+            interest = steering.Pursuit(this, target);
+            maxSpeed = pursuitSpeed;
+
+            if (Vector3.Distance(transform.position, target.transform.position) < attackRange)
+            {
+                StartCoroutine(ShadowAttack());
+                attacking = true;
+            }
+        }
+        else if (wander)
+        {
+            interest = steering.Wander(this);
+            maxSpeed = wanderSpeed;
+        }
+        else if (searching)
+        {
+            interest = steering.Seek(this, lastTargetPosition);
+            maxSpeed = pursuitSpeed;
+
+            if (Vector3.Distance(transform.position, lastTargetPosition) < 1f && !targetInView)
+            {
+                wander = true;
+                searching = false;
+            }
+        }
+
+        resultDirection = FindMoveDirection(danger, interest);
+
+        rb.velocity = resultDirection * maxSpeed;
+        velocity = rb.velocity;
+
+        if (resultDirection != Vector3.zero)
+            SmoothlyAlignToDirection(resultDirection);
+    }
+
     void FindTargetInView()
     {
         LayerMask obstacleLayer = LayerMask.GetMask("Obstacle");
         LayerMask playerLayer = LayerMask.GetMask("Player");
 
-        Collider playerCollider = target.GetComponent<Collider>();
+        Vector3 playerPos = target.transform.position;
+        playerPos.y = 1f;
 
-        Vector3 direction = (playerCollider.transform.position - transform.position).normalized;
+        Vector3 actorPos = transform.position;
+        actorPos.y = 1f;
+       
 
-        if (showGizmos && showViewAngle)
+        Vector3 direction = (playerPos - actorPos).normalized;
+
+        ViewAngleGizmos(direction); 
+
+        // exclui alvos atras de obstaculos
+        RaycastHit hit;
+        if (Physics.Raycast(actorPos, direction, out hit, viewRadius, obstacleLayer) && hit.collider.gameObject.layer != playerLayer)
         {
-            Debug.DrawRay(transform.position, direction * viewRadius, Color.blue);
+            Vector3 hitPoint = hit.point;
+            if(Vector3.Distance(hitPoint, actorPos) > Vector3.Distance(playerPos, actorPos))
+            {
+                TargetOnView(direction);
+                return;
+            }
 
-            // Get the starting and ending points of the view angle
-            Vector3 viewAngleStart = Quaternion.AngleAxis(-viewAngle * 0.5f, transform.up) * transform.forward;
-            Vector3 viewAngleEnd = Quaternion.AngleAxis(viewAngle * 0.5f, transform.up) * transform.forward;
-
-            // Draw rays for visualization of the view angle
-            Debug.DrawRay(transform.position, viewAngleStart * viewRadius, Color.magenta);
-            Debug.DrawRay(transform.position, viewAngleEnd * viewRadius, Color.magenta);
+            TargetNotOnView();
         }
+        else if (Physics.Raycast(actorPos, direction, viewRadius, playerLayer))
+        {
+            TargetOnView(direction);
+        }
+    }
 
-        // exclui alvos fora do angulo de visao
+    private void TargetOnView(Vector3 direction)
+    {
         float angle = Vector3.Angle(transform.forward, direction);
         if (angle > viewAngle * 0.5f && wander)
         {
             return;
         }
-            
-        // exclui alvos atras de obstaculos
-        //RaycastHit hit;
-        if (Physics.Raycast(transform.position, direction, viewRadius, obstacleLayer))
+
+        if (searching || wander)
         {
-            Debug.Log("Target behind obstacle");
-            targetInView = false;
-        }
-        else if (Physics.Raycast(transform.position, direction, viewRadius, playerLayer))
-        {
-            targetInView = true;
+            searching = false;
             wander = false;
-            lastTargetPosition = playerCollider.transform.position;
+            pursuing = true;
+        }
+
+        targetInView = true;
+        lastTargetPosition = target.transform.position;
+    }
+
+    private void TargetNotOnView()
+    {
+        targetInView = false;
+
+        if (pursuing)
+        {
+            pursuing = false;
+            searching = true;
         }
     }
 
@@ -109,16 +184,18 @@ public class Actor : MonoBehaviour
         // gizmos
         interestTemp = interest;
         dangerTemp = danger;
-            
+
         // se todas as direcoes de interesse contem um obstaculo, rotaciona 180 graus
         bool zeroInterest = interest.All(x => x < 0.05f);
-        if(zeroInterest)
+        if (zeroInterest)
         {
-            transform.Rotate(0f, 45f, 0f);
+            transform.Rotate(0f, 90f, 0f);
+            pursuing = false;
+            searching = false;
             wander = true;
             return Vector3.zero;
         }
-        
+
         Vector3 outputDirection = Vector3.zero;
         for (int i = 0; i < interest.Length; i++)
         {
@@ -130,56 +207,6 @@ public class Actor : MonoBehaviour
         return outputDirection;
     }
 
-    void FixedUpdate()
-    {
-        LayerMask obstacleLayer = LayerMask.GetMask("Obstacle");
-        
-        FindTargetInView();
-
-        float[] danger = steering.WallAvoidance(this, avoidanceRadius, maxAvoidanceDistance, obstacleLayer);
-        float[] interest;
-
-
-        if(attacking)
-        {
-            rb.velocity = Vector3.zero;
-            return;
-        }
-        else if (targetInView) // se esta vendo, persegue
-        {
-            interest = steering.Pursuit(this, target);
-            maxSpeed = pursuitSpeed;
-
-            if (Vector3.Distance(transform.position, target.transform.position) < attackRange)
-            {
-                StartCoroutine(ShadowAttack());
-                attacking = true;
-            }
-        }
-        else if (wander)  // nao viu, wander
-        {
-            interest = steering.Wander(this);
-            maxSpeed = wanderSpeed;
-        }
-        else             // ja viu, mas perdeu de vista
-        {
-            interest = steering.Seek(this, lastTargetPosition);
-            maxSpeed = pursuitSpeed;
-        }
-
-        // se chegou na ultima posicao e nao ve, wander
-        if (Vector3.Distance(transform.position, lastTargetPosition) < 2f && !targetInView)
-            wander = true;
-
-        resultDirection = FindMoveDirection(danger, interest);
-
-        rb.velocity = resultDirection * maxSpeed;
-        velocity = rb.velocity;
-
-        if(resultDirection != Vector3.zero)
-            SmoothlyAlignToDirection(resultDirection);
-    }
-    
     void SmoothlyAlignToDirection(Vector3 targetDirection)
     {
         Quaternion targetRotation = Quaternion.LookRotation(targetDirection, Vector3.up);
@@ -190,8 +217,15 @@ public class Actor : MonoBehaviour
     {
         anim.SetTrigger("Attack");
         yield return new WaitForSeconds(0.5f);
-        Debug.Log("Shadow Attack");
-        SceneManager.LoadScene("TurnBasedBattle");
+        if(Vector3.Distance(transform.position, target.transform.position) < attackRange)
+        {
+            GameManager.Instance.LoadBattleScene(false, gameObject);
+        }
+        else
+        {
+            attacking = false;
+            searching = true;
+        }
     }
 
     private void OnDrawGizmos()
@@ -218,6 +252,23 @@ public class Actor : MonoBehaviour
 
             Gizmos.color = Color.yellow;
             Gizmos.DrawRay(transform.position, resultDirection * 5f);
+        }
+    }
+
+    private void ViewAngleGizmos(Vector3 direction)
+    {
+        Vector3 actorPos = transform.position;
+        if (showGizmos && showViewAngle)
+        {
+            Debug.DrawRay(actorPos, direction * viewRadius, Color.blue);
+
+            // Get the starting and ending points of the view angle
+            Vector3 viewAngleStart = Quaternion.AngleAxis(-viewAngle * 0.5f, transform.up) * transform.forward;
+            Vector3 viewAngleEnd = Quaternion.AngleAxis(viewAngle * 0.5f, transform.up) * transform.forward;
+
+            // Draw rays for visualization of the view angle
+            Debug.DrawRay(actorPos, viewAngleStart * viewRadius, Color.magenta);
+            Debug.DrawRay(actorPos, viewAngleEnd * viewRadius, Color.magenta);
         }
     }
 }

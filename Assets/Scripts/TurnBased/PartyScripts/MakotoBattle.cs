@@ -13,7 +13,18 @@ public class MakotoBattle : PlayerBattle
         luck = 68;
         isPlayer = true;
 
-        HP = 100 + (endurance * 10);
+        if(GameManager.Instance.makotoHealth == -1)
+        {
+            HP = 100 + (endurance * 10);
+            GameManager.Instance.makotoHealth = HP;
+        }
+        else
+        {
+            HP = GameManager.Instance.makotoHealth;
+            if (HP == 0)
+                HP = 1;
+        }
+
         SP = 100 + magic;
         initiative = agility + UnityEngine.Random.Range(1, (luck / 2));
 
@@ -23,6 +34,11 @@ public class MakotoBattle : PlayerBattle
     protected override void SetHpBar()
     {
         base.SetHpBar();
+    }
+
+    public override void SaveStats()
+    {
+        GameManager.Instance.makotoHealth = HP;
     }
 
     public override void Fire()

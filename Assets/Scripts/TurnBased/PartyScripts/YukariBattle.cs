@@ -14,7 +14,18 @@ public class YukariBattle : PlayerBattle
         luck = 53;
         isPlayer = true;
 
-        HP = 100 + (endurance * 10);
+        if(GameManager.Instance.yukariHealth == -1)
+        {
+            HP = 100 + (endurance * 10);
+            GameManager.Instance.yukariHealth = HP;
+        }
+        else
+        {
+            HP = GameManager.Instance.yukariHealth;
+            if (HP == 0)
+                HP = 1;
+        }
+
         SP = 100 + magic;
         initiative = agility + UnityEngine.Random.Range(1, (luck / 2));
 
@@ -24,6 +35,11 @@ public class YukariBattle : PlayerBattle
     protected override void SetHpBar()
     {
         base.SetHpBar();
+    }
+
+    public override void SaveStats()
+    {
+        GameManager.Instance.yukariHealth = HP;
     }
 
     public override void Fire()

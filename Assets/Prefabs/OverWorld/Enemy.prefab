@@ -49,15 +49,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0290138f4d0756846a9b9c106c10634a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  wanderSpeed: 30
-  pursuitSpeed: 70
-  maxSpeed: 30
   velocity: {x: 0, y: 0, z: 0}
-  steeringForce: {x: 0, y: 0, z: 0}
-  wall: {x: 0, y: 0, z: 0}
-  other: {x: 0, y: 0, z: 0}
+  wanderSpeed: 2
+  pursuitSpeed: 5
+  maxSpeed: 2
+  rotationSpeed: 20
+  attackRange: 2
+  avoidanceRadius: 6
+  maxAvoidanceDistance: 2.5
+  viewRadius: 30
+  viewAngle: 180
   target: {fileID: 0}
-  wanderTarget: {x: 0, y: 0, z: 0}
+  resultDirection: {x: 0, y: 0, z: 0}
+  targetInView: 0
+  wander: 1
+  pursuing: 0
+  searching: 0
+  attacking: 0
+  showGizmos: 1
+  showDanger: 0
+  showInterest: 0
+  showViewAngle: 1
 --- !u!114 &5866020470183691062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -73,9 +85,6 @@ MonoBehaviour:
   wanderRadius: 5
   wanderDistance: 10
   wanderJitter: 1
-  testCube: {fileID: 0}
-  wanderCircleAngle: 0
-  angle: 0
 --- !u!54 &8804868268456318947
 Rigidbody:
   m_ObjectHideFlags: 0

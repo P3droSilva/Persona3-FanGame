@@ -38,7 +38,14 @@ public class PlayerBattle : MonoBehaviour
 
     protected virtual void SetHpBar()
     {
-        HpBar.SetMaxHP(HP);
+        int maxHP = 100 + (endurance * 10);
+        HpBar.SetMaxHP(maxHP);
+        HpBar.SetHP(HP);
+    }
+
+    public virtual void SaveStats()
+    {
+        return;
     }
 
     public virtual IEnumerator StartAction()
@@ -65,6 +72,9 @@ public class PlayerBattle : MonoBehaviour
         }
 
         HP -= damage;
+        if (HP < 0)
+            HP = 0;
+
         HpBar.SetHP(HP);
 
         Debug.Log("Took " + damage + " damage!");

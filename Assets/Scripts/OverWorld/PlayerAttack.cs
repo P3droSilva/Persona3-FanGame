@@ -11,6 +11,7 @@ public class PlayerAttack : MonoBehaviour
     private Animator anim;
     private float timeBtwAttack;
     private bool attacking;
+    private GameObject enemyAttacked;
 
     // Start is called before the first frame update
     void Start()
@@ -32,7 +33,8 @@ public class PlayerAttack : MonoBehaviour
         {
             if(EnemiesInRange.Count > 0)
             {
-                Invoke("StartBattleWithDelay", 1f);
+                enemyAttacked = EnemiesInRange[0];
+                Invoke("StartBattleWithDelay", 0.5f);
             }
         }
     }
@@ -62,7 +64,7 @@ public class PlayerAttack : MonoBehaviour
 
     void StartBattleWithDelay()
     {
-        SceneManager.LoadScene("TurnBasedBattle");
+        GameManager.Instance.LoadBattleScene(true, enemyAttacked);
     }
 
 }

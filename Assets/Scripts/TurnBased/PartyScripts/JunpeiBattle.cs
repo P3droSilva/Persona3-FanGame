@@ -15,7 +15,18 @@ public class JunpeiBattle : PlayerBattle
         luck = 53;
         isPlayer = true;
 
-        HP = 100 + (endurance * 10);
+        if (GameManager.Instance.junpeiHealth == -1)
+        {
+            HP = 100 + (endurance * 10);
+            GameManager.Instance.junpeiHealth = HP;
+        }
+        else
+        {
+            HP = GameManager.Instance.junpeiHealth;
+            if (HP == 0)
+                HP = 1;
+        }
+
         SP = 100 + magic;
         initiative = agility + UnityEngine.Random.Range(1, (luck / 2));
 
@@ -25,6 +36,11 @@ public class JunpeiBattle : PlayerBattle
     protected override void SetHpBar()
     {
         base.SetHpBar();
+    }
+
+    public override void SaveStats()
+    {
+        GameManager.Instance.junpeiHealth = HP;
     }
 
     public override void Fire()

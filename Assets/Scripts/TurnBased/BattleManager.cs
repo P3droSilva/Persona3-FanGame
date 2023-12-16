@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using Cinemachine;
 
 public class BattleManager : MonoBehaviour
@@ -21,7 +22,6 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private GameObject enemySpawnPoint2;
     [SerializeField] private GameObject enemySpawnPoint3;
     [SerializeField] private GameObject enemySpawnPoint4;
-    [SerializeField] private Transform  enemyParent;
     private int enemiesCount;
 
     [Header("Party Properties")]
@@ -31,8 +31,10 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private YukariBattle yukari;
     private int partyCount = 4;
 
-    // list that controls the turn order
-    private List<PlayerBattle> characters = new List<PlayerBattle>();
+    [Header("Battle Properties")]
+    [SerializeField] private int playerAdvantage = -1;
+    [SerializeField] private int advantageTurns = 0; 
+    [SerializeField] private List<PlayerBattle> characters = new List<PlayerBattle>(); // list that controls the turn order
     private List<PlayerBattle> party = new List<PlayerBattle>();    
     private List<ShadowBattle> enemies = new List<ShadowBattle>();
 
@@ -65,7 +67,7 @@ public class BattleManager : MonoBehaviour
 
         //get encounter enemies properties
         enemiesCount = UnityEngine.Random.Range(2, 5); // This will change depending on the future encounter table
-
+   
         //Instantiate Enemies
         List<GameObject> enemySpawnPoints = new List<GameObject>
         {
@@ -84,6 +86,8 @@ public class BattleManager : MonoBehaviour
             characters.Add(shadowbt); // add enemies to the list
             enemies.Add(shadowbt);
         }
+
+        playerAdvantage = GameManager.Instance.playerAdvantage;
 
         DecideTurnOrder();
         StartCoroutine(BattleLoop());
@@ -115,7 +119,6 @@ public class BattleManager : MonoBehaviour
             {
                 choosingTarget = false;
                 SwapCamera();
-                Debug.Log(activeCharacter.name + " attacked " + enemies[targetIdx].name);
             }
         }
     }
@@ -125,37 +128,58 @@ public class BattleManager : MonoBehaviour
         activeCharacterIndex = 0;
         SwapCamera();
 
+        advantageTurns = playerAdvantage == 1 ? enemiesCount : partyCount;
+
         while(true)
         {
             activeCharacter = characters[activeCharacterIndex];
 
             if(activeCharacter.isPlayer)
             {
-                Debug.Log("Active Char Index: " + activeCharacterIndex);
-                Debug.Log(activeCharacter.name + " is a player");
+                if (advantageTurns == 0 || playerAdvantage == 1)
+                {
+                    ChangeCameraFocus();
 
-                ChangeCameraFocus();
+                    attackButton.onClick.RemoveAllListeners();
+                    attackButton.onClick.AddListener(activeCharacter.PhysicalAttack);
+                    yield return StartCoroutine(PlayerAction());
+                }
 
-                attackButton.onClick.RemoveAllListeners();
-                attackButton.onClick.AddListener(activeCharacter.PhysicalAttack);
-                yield return StartCoroutine(PlayerAction());
+                if(advantageTurns > 0 && playerAdvantage == 0)
+                {
+                    advantageTurns--;
+                }
             }
             else
             {
-                Debug.Log("Active Char Index: " + activeCharacterIndex);
-                Debug.Log(activeCharacter.name + " is an enemy");
-                
-                yield return StartCoroutine(EnemyAction());
+                if (advantageTurns == 0 || playerAdvantage == 0)
+                {
+                    yield return StartCoroutine(EnemyAction());
+                }
+
+                if (advantageTurns > 0 && playerAdvantage == 1)
+                {
+                    advantageTurns--;
+                }
             }
             
             if(enemiesCount == 0)
             {
-                Debug.Log("You win!");
+                GameManager.Instance.LoadOverworldScene();
+                foreach(PlayerBattle player in party)
+                {
+                    player.SaveStats();
+                }
                 break;
             }
             else if(partyCount == 0)
             {
-                Debug.Log("You lose!");
+                GameManager.Instance.LoadOverworldScene();
+                //SceneManager.LoadScene("GameOver");
+                foreach (PlayerBattle player in party)
+                {
+                    player.SaveStats();
+                }
                 break;
             }
             
@@ -193,12 +217,14 @@ public class BattleManager : MonoBehaviour
         if(hp <= 0)
         {
             enemies[targetIdx].gameObject.SetActive(false);
-
-            Debug.Log("Character List Size: " + characters.Count);
             characters.Remove(enemies[targetIdx]);
             enemies.RemoveAt(targetIdx);
             enemiesCount--;
-            Debug.Log("Character List Size: " + characters.Count);
+
+            if(advantageTurns > 0 && playerAdvantage == 1)
+            {
+                advantageTurns--;
+            }
         }
 
         targetIdx = -1;
@@ -209,26 +235,27 @@ public class BattleManager : MonoBehaviour
     {
         yield return StartCoroutine(activeCharacter.StartAction());
         int rawDamage = activeCharacter.getDamage();
-        Debug.Log("Raw Damage: " + rawDamage);
 
         int target = UnityEngine.Random.Range(0, party.Count);
 
         yield return StartCoroutine(AttackAnimation(activeCharacter.gameObject, party[target].gameObject));
 
         int hp = party[target].TakeDamage(rawDamage);
+        yield return new WaitForSeconds(1f);
 
         if (hp <= 0)
         {
             party[target].gameObject.SetActive(false);
-
-            Debug.Log("Character List Size: " + characters.Count);
-            characters.Remove(party[targetIdx]);
-            party.RemoveAt(targetIdx);
+            characters.Remove(party[target]);
+            party.RemoveAt(target);
             partyCount--;
-            Debug.Log("Character List Size: " + characters.Count);
+
+            if (advantageTurns > 0 && playerAdvantage == 0)
+            {
+                advantageTurns--;
+            }
         }
 
-        yield return new WaitForSeconds(1f);
         battleCanvas.gameObject.SetActive(false);
     }
     
@@ -253,9 +280,6 @@ public class BattleManager : MonoBehaviour
             mainCamera.gameObject.SetActive(true);
             targetCamera.gameObject.SetActive(false);
         }
-
-        Debug.Log("Camera Swapped");
-
     }
 
     IEnumerator AttackAnimation(GameObject attacker, GameObject target)
@@ -272,6 +296,12 @@ public class BattleManager : MonoBehaviour
         vcam.Follow = target.transform;
         vcam.LookAt = target.transform.parent.Find("LookAt").transform;
         transposer.m_FollowOffset = new Vector3(0, 2, 4.5f);
+
+        PlayerBattle targetScript = target.GetComponent<PlayerBattle>();
+        if(party.Contains(targetScript))
+        {
+            target.GetComponent<Animator>().SetTrigger("Hit");
+        }
     }
 
     private void ChangeCameraFocus()
