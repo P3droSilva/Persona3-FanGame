@@ -17,6 +17,8 @@ public class PlayerBattle : MonoBehaviour
     public int HP;
     public int initiative;
     public bool isPlayer;
+    public bool isGuarding = false;
+    private bool waitingForAction = false;
 
     protected int rawDamage = -1;
 
@@ -50,7 +52,15 @@ public class PlayerBattle : MonoBehaviour
 
     public virtual IEnumerator StartAction()
     {
-        while (rawDamage == -1)
+        waitingForAction = true;
+
+        if(isGuarding)
+        {
+            gameObject.GetComponent<Animator>().SetTrigger("Idle");
+            isGuarding = false;
+        }
+
+        while (waitingForAction)
         {
             yield return null;
         }
@@ -71,6 +81,13 @@ public class PlayerBattle : MonoBehaviour
             damage = 0;
         }
 
+        if(isGuarding)
+        {
+            damage = damage / 4;
+            isGuarding = false;
+            gameObject.gameObject.GetComponent<Animator>().SetTrigger("Idle");
+        }
+
         HP -= damage;
         if (HP < 0)
             HP = 0;
@@ -84,6 +101,13 @@ public class PlayerBattle : MonoBehaviour
     public void PhysicalAttack()
     {
         rawDamage = strength * 3 + UnityEngine.Random.Range(1, luck);
+        waitingForAction = false;
+    }
+
+    public void Guard()
+    {
+        isGuarding = true;
+        waitingForAction = false;
     }
 
     virtual public void Fire()

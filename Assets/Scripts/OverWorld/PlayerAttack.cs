@@ -8,6 +8,7 @@ public class PlayerAttack : MonoBehaviour
     [SerializeField] public float startTimeBtwAttack = 0.5f;
 
     private List<GameObject> EnemiesInRange;
+    private bool mothmanInRange;
     private Animator anim;
     private float timeBtwAttack;
     private bool attacking;
@@ -35,6 +36,11 @@ public class PlayerAttack : MonoBehaviour
             {
                 enemyAttacked = EnemiesInRange[0];
                 Invoke("StartBattleWithDelay", 0.5f);
+            }
+
+            if(GetComponentInChildren<AttackingArea>().mothmanInRange)
+            {
+                GameManager.Instance.LoadBossBattle();
             }
         }
     }

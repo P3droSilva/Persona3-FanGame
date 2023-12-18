@@ -10,14 +10,14 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
 
     public Vector3 playerPosition = Vector3.zero;
+    private GameObject[] enemies;
 
+    [Header("Battle")]
     public int enemyInBattle;
-
     public int makotoHealth;
     public int junpeiHealth;
     public int mitsuruHealth;
     public int yukariHealth;
-
     public int playerAdvantage;
 
     [Header("Fade")]
@@ -28,6 +28,8 @@ public class GameManager : MonoBehaviour
     public float fadeSpeed = 1.5f;
 
     private bool coroutineRunning = false;
+    private bool loading = false;
+    private int win = -1;
 
     private void Awake()
     {
@@ -47,8 +49,37 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void Heal()
+    {
+        makotoHealth = -1;
+        junpeiHealth = -1;
+        mitsuruHealth = -1;
+        yukariHealth = -1;
+    }
+
+    public void LoadGameOver(bool win)
+    {
+        this.win = win ? 1 : 0;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        SceneManager.LoadScene("GameOver");
+
+    }
+
+    public void LoadMainMenu()
+    {
+        Debug.Log("Loading main menu");
+        SceneManager.LoadScene("MainMenu");
+        DestroyDontDestroyOnLoadObjects();
+    }
+
     public void LoadBattleScene(bool playerAdv, GameObject enemy)
     {
+        if(loading)
+        {
+            return;
+        }
+
+        loading = true;
         playerAdvantage = playerAdv ? 1 : 0;
         playerPosition = GameObject.Find("Player").transform.position;
 
@@ -61,6 +92,18 @@ public class GameManager : MonoBehaviour
             coroutineRunning = true;
             Image fadeImage = playerAdv ? playerAdvImg : enemyAdvImg;
             StartCoroutine(FadeOut("TurnBasedBattle", fadeImage));
+        }
+    }
+
+    public void LoadBossBattle()
+    {
+        playerAdvantage = -1;
+        playerPosition = GameObject.Find("Player").transform.position;
+
+        if (!coroutineRunning)
+        {
+            coroutineRunning = true;
+            StartCoroutine(FadeOut("BossBattle", fadeOutImg));
         }
     }
 
@@ -82,6 +125,21 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void LoadSecondFloor()
+    {
+        GameObject teleportPoint = GameObject.Find("TeleportPoint2nd");
+        GameObject.Find("Player").transform.position = teleportPoint.transform.position;
+        enemies = GameObject.FindGameObjectsWithTag("Shadow");
+        DisableShadows();
+    }
+
+    public void LoadFirstFloor()
+    {
+        GameObject teleportPoint = GameObject.Find("TeleportPoint1st");
+        GameObject.Find("Player").transform.position = teleportPoint.transform.position;
+        EnableShadows();
+    }
+
     private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, LoadSceneMode mode)
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -89,6 +147,28 @@ public class GameManager : MonoBehaviour
         if (scene.name == "OverWorld")
         {
             DestroyEnemyInBattle();
+        }
+        else if(scene.name == "GameOver")
+        {
+            if(win == 1)
+            {
+                GameObject.Find("LoseText").SetActive(false);
+            }
+            else
+            {
+                GameObject.Find("WinText").SetActive(false);
+            }
+
+            GameObject bt = GameObject.Find("MenuButton");
+            Button button = bt.GetComponent<Button>();
+            if(button == null)
+            {
+                Debug.Log("Button is null");
+            }
+            button.interactable = true;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(LoadMainMenu);
+            
         }
     }
 
@@ -134,6 +214,30 @@ public class GameManager : MonoBehaviour
 
         fadeImage.gameObject.SetActive(false);
         coroutineRunning = false;
+        loading = false;
+    }
+
+    private void DisableShadows()
+    {
+        foreach (GameObject shadow in enemies)
+        {
+            shadow.SetActive(false);
+        }
+    }
+
+    private void EnableShadows()
+    {
+        foreach (GameObject shadow in enemies)
+        {
+            shadow.SetActive(true);
+        }
+    }
+
+    void DestroyDontDestroyOnLoadObjects()
+    {
+        Destroy(fadeCanvas.gameObject);
+        Destroy(GameObject.Find("AudioManager"));
+        Destroy(GameObject.Find("GameManager"));
     }
 
 

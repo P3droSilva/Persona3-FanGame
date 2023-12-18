@@ -14,7 +14,11 @@ public class MitsuruBattle : PlayerBattle
         luck = 51;
         isPlayer = true;
 
-        if (GameManager.Instance.mitsuruHealth == -1)
+        if(GameManager.Instance == null)
+        {
+            HP = 100 + (endurance * 10);
+        }
+        else if (GameManager.Instance.mitsuruHealth == -1)
         {
             HP = 100 + (endurance * 10);
             GameManager.Instance.mitsuruHealth = HP;

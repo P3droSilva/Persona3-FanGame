@@ -5,6 +5,7 @@ using UnityEngine;
 public class AttackingArea : MonoBehaviour
 {
     public List<GameObject> EnemiesInRange;
+    public bool mothmanInRange;
 
     void Start()
     {
@@ -18,6 +19,11 @@ public class AttackingArea : MonoBehaviour
         {
             EnemiesInRange.Add(other.gameObject);
         }
+
+        if (other.gameObject.CompareTag("Mothman"))
+        {
+            mothmanInRange = true;
+        }
     }
 
     void OnTriggerExit(Collider other)
@@ -25,6 +31,11 @@ public class AttackingArea : MonoBehaviour
         if (other.gameObject.CompareTag("Shadow") && EnemiesInRange.Contains(other.gameObject))
         {
             EnemiesInRange.Remove(other.gameObject);
+        }
+
+        if (other.gameObject.CompareTag("Mothman"))
+        {
+            mothmanInRange = false;
         }
     }
 }

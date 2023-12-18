@@ -15,6 +15,7 @@ public class BattleManager : MonoBehaviour
     [Header("Battle UI")]
     [SerializeField] private Canvas battleCanvas;
     [SerializeField] private Button attackButton;
+    [SerializeField] private Button guardButton;
 
     [Header("Enemy Properties")]
     [SerializeField] private GameObject enemyPrefab;
@@ -142,6 +143,9 @@ public class BattleManager : MonoBehaviour
 
                     attackButton.onClick.RemoveAllListeners();
                     attackButton.onClick.AddListener(activeCharacter.PhysicalAttack);
+                    guardButton.onClick.RemoveAllListeners();
+                    guardButton.onClick.AddListener(activeCharacter.Guard);
+
                     yield return StartCoroutine(PlayerAction());
                 }
 
@@ -174,8 +178,7 @@ public class BattleManager : MonoBehaviour
             }
             else if(partyCount == 0)
             {
-                GameManager.Instance.LoadOverworldScene();
-                //SceneManager.LoadScene("GameOver");
+                GameManager.Instance.LoadGameOver(false);
                 foreach (PlayerBattle player in party)
                 {
                     player.SaveStats();
@@ -195,39 +198,46 @@ public class BattleManager : MonoBehaviour
         battleCanvas.gameObject.SetActive(true);
 
         yield return StartCoroutine(activeCharacter.StartAction());
-        int rawDamage = activeCharacter.getDamage();
 
         battleCanvas.gameObject.SetActive(false);
         activeCharacter.ToggleActiveCanvas();
 
-        ChooseTarget();
-
-        while (choosingTarget == true)
+        if(activeCharacter.isGuarding)
         {
-            yield return null;
+            yield return StartCoroutine(GuardAnimation());
         }
-
-        yield return StartCoroutine(AttackAnimation(activeCharacter.gameObject, enemies[targetIdx].gameObject));
-
-        int hp = enemies[targetIdx].TakeDamage(rawDamage);
-
-        yield return new WaitForSeconds(1f);
-        enemies[targetIdx].ToggleActiveCanvas();
-
-        if(hp <= 0)
+        else
         {
-            enemies[targetIdx].gameObject.SetActive(false);
-            characters.Remove(enemies[targetIdx]);
-            enemies.RemoveAt(targetIdx);
-            enemiesCount--;
+            int rawDamage = activeCharacter.getDamage();
+            ChooseTarget();
 
-            if(advantageTurns > 0 && playerAdvantage == 1)
+            while (choosingTarget == true)
             {
-                advantageTurns--;
+                yield return null;
             }
-        }
 
-        targetIdx = -1;
+            yield return StartCoroutine(AttackAnimation(activeCharacter.gameObject, enemies[targetIdx].gameObject));
+
+            int hp = enemies[targetIdx].TakeDamage(rawDamage);
+
+            yield return new WaitForSeconds(1f);
+            enemies[targetIdx].ToggleActiveCanvas();
+
+            if (hp <= 0)
+            {
+                enemies[targetIdx].gameObject.SetActive(false);
+                characters.Remove(enemies[targetIdx]);
+                enemies.RemoveAt(targetIdx);
+                enemiesCount--;
+
+                if (advantageTurns > 0 && playerAdvantage == 1)
+                {
+                    advantageTurns--;
+                }
+            }
+            targetIdx = -1;
+        }
+        
         activeCharacter.ToggleActiveCanvas();
     }
 
@@ -302,6 +312,18 @@ public class BattleManager : MonoBehaviour
         {
             target.GetComponent<Animator>().SetTrigger("Hit");
         }
+    }
+
+    IEnumerator GuardAnimation()
+    {
+        var transposer = vcam.GetCinemachineComponent<CinemachineTransposer>();
+
+        vcam.Follow = activeCharacter.gameObject.transform;
+        vcam.LookAt = activeCharacter.gameObject.transform.parent.Find("LookAt").transform;
+        transposer.m_FollowOffset = new Vector3(0, 3, 4.5f);
+
+        activeCharacter.gameObject.GetComponent<Animator>().SetTrigger("Guard");
+        yield return new WaitForSeconds(1f);
     }
 
     private void ChangeCameraFocus()

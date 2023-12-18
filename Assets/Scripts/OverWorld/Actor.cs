@@ -62,17 +62,12 @@ public class Actor : MonoBehaviour
         float[] interest = { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f };
 
 
-        if (attacking)
-        {
-            rb.velocity = Vector3.zero;
-            return;
-        }
-        else if (pursuing)
+        if (pursuing)
         {
             interest = steering.Pursuit(this, target);
             maxSpeed = pursuitSpeed;
 
-            if (Vector3.Distance(transform.position, target.transform.position) < attackRange)
+            if (!attacking && Vector3.Distance(transform.position, target.transform.position) < attackRange)
             {
                 StartCoroutine(ShadowAttack());
                 attacking = true;

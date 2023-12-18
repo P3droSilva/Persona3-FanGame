@@ -11,10 +11,14 @@ public class YukariBattle : PlayerBattle
         magic = 91;
         endurance = 55;
         agility = 55;
-        luck = 53;
+        luck = 70;
         isPlayer = true;
 
-        if(GameManager.Instance.yukariHealth == -1)
+        if(GameManager.Instance == null)
+        {
+            HP = 100 + (endurance * 10);
+        }
+        else if(GameManager.Instance.yukariHealth == -1)
         {
             HP = 100 + (endurance * 10);
             GameManager.Instance.yukariHealth = HP;

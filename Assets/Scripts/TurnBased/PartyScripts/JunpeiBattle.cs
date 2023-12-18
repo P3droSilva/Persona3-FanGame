@@ -15,7 +15,11 @@ public class JunpeiBattle : PlayerBattle
         luck = 53;
         isPlayer = true;
 
-        if (GameManager.Instance.junpeiHealth == -1)
+        if(GameManager.Instance == null)
+        {
+            HP = 100 + (endurance * 10);
+        }
+        else if (GameManager.Instance.junpeiHealth == -1)
         {
             HP = 100 + (endurance * 10);
             GameManager.Instance.junpeiHealth = HP;

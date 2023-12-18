@@ -6,9 +6,18 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/OverWorld1.unity
-    guid: 9fc0d4010bbf28b4594072e72b8655ab
+    path: Assets/Scenes/MainMenu.unity
+    guid: 89b3ce69d5361774aa2b5593bcc32809
+  - enabled: 1
+    path: Assets/Scenes/OverWorld.unity
+    guid: 0b0740fb1e477d7479376b8d3832d52d
   - enabled: 1
     path: Assets/Scenes/TurnBasedBattle.unity
     guid: 5031bd78d8a8e43e5beb49c3494d2200
+  - enabled: 1
+    path: Assets/Scenes/BossBattle.unity
+    guid: 641804b5ffe84194eb09965ca8e3cb81
+  - enabled: 1
+    path: Assets/Scenes/GameOver.unity
+    guid: d8d101fd22109a94abdbaaea6cb36246
   m_configObjects: {}

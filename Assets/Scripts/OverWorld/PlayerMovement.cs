@@ -20,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 startPos = Vector3.zero;
 
     private bool firstUpdate = true;
+    private bool movementDisabled = false;
 
     private void Awake()
     {
@@ -50,6 +51,13 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        if (movementDisabled)
+        {
+            anim.SetBool("Moving", false);
+            anim.SetBool("Sprinting", false);
+            return;
+        }
+
         GetInput();
         SpeedControl();
 
@@ -65,6 +73,13 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if(movementDisabled)
+        {
+            rb.velocity = Vector3.zero;
+            anim.SetBool("Moving", false);
+            anim.SetBool("Sprinting", false);
+            return;
+        }
         MovePlayer();
     }
 
@@ -95,5 +110,33 @@ public class PlayerMovement : MonoBehaviour
             Vector3 limitedVel = flatVel.normalized * maxSpeed;
             rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
         }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.CompareTag("Stairs"))
+        {
+            GameManager.Instance.LoadSecondFloor();
+            rb.velocity = Vector3.zero;
+            StartCoroutine(DisableMovement(1f));
+        }
+        else if(other.CompareTag("StairsDown"))
+        {
+            GameManager.Instance.LoadFirstFloor();
+            rb.velocity = Vector3.zero;
+            StartCoroutine(DisableMovement(1f));
+        }
+        
+        if(other.CompareTag("Heal"))
+        {
+            GameManager.Instance.Heal();
+        }
+    }
+
+    private IEnumerator DisableMovement(float seconds)
+    {
+        movementDisabled = true;
+        yield return new WaitForSeconds(seconds);
+        movementDisabled = false;
     }
 }
