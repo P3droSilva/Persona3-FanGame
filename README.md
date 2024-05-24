@@ -1,2 +1,6 @@
-# Trabalho-Final-CGA-2023-2
-Jogo RPG de Turnos baseado ne série: Shin Megami Tensei - Persona
+# Persona 3 FanGame
+Uma tentativa de replicar aspectos básicos do jogo Persona 3 como um trabalho para a disciplina de Computação Gráfica Avançada da UFSM em 2023/2.
+
+Desenvolvido em Unity, em um intervalo de tempo curto.
+
+
